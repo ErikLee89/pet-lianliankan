@@ -25,6 +25,7 @@ h1{font-size:22px;margin:4px 0 8px;color:#ffd54f;letter-spacing:2px}
 .tile.err{animation:errShake .35s;border-color:#ff2020!important;box-shadow:0 0 8px 2px rgba(255,40,40,.8)}
 @keyframes errShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-3px)}40%{transform:translateX(3px)}60%{transform:translateX(-2px)}80%{transform:translateX(2px)}}
 .tile img{width:54px;height:54px;pointer-events:none;image-rendering:crisp-edges;image-rendering:pixelated}
+.tile img.smooth{image-rendering:auto}
 @keyframes hf{0%,100%{box-shadow:2px 2px 0 rgba(60,20,80,.85)}50%{box-shadow:0 0 12px 4px #ff5252;transform:scale(1.12)}}
 .tile.hint{animation:hf .5s ease-in-out infinite}
 #toolbar{display:flex;gap:10px;margin-top:12px}
@@ -76,10 +77,10 @@ button:disabled{opacity:.4;cursor:default}
       <div id="ovMsg" style="min-height:22px;color:#ff8a80;margin-bottom:6px"></div>
       <label>选择难度</label>
       <select id="diffSel">
-        <option value="0">初级（时间充裕）</option>
+        <option value="0">初级</option>
         <option value="1">中级</option>
         <option value="2">高级</option>
-        <option value="3">特级（时间很紧）</option>
+        <option value="3">特高</option>
       </select>
       <label>选择图案</label>
       <select id="setSel">
@@ -91,7 +92,7 @@ button:disabled{opacity:.4;cursor:default}
       <select id="levelSel"></select>
       <button id="startBtn">开始游戏</button>
       <button id="rankBtn" style="margin-top:8px;background:#6d4c41">🏆 排行榜</button>
-      <div style="margin-top:12px;font-size:12px;color:#888">规则：连接两张相同图案，连线转折不超过 2 次即可消除<br>每过一关洗牌次数 +1　P/回车：暂停　L：跳到下一关</div>
+      <div style="margin-top:12px;font-size:12px;color:#888">规则：连接两张相同图案，连线转折不超过 2 次即可消除<br>每过一关洗牌次数 +1、提示 +1　P/回车：暂停　L：跳到下一关</div>
     </div>
   </div>
 </div>
@@ -153,12 +154,13 @@ button:disabled{opacity:.4;cursor:default}
 </style>
 <script>
 "use strict";
-const COLS=12, ROWS=8, TILE=56, MAX_LEVEL=11, KIND_COUNT=42;
+let COLS=12, ROWS=7;
+const TILE=56, MAX_LEVEL=11, KIND_COUNT=42;
 const DIFF=[
- {name:"初级",time:220,bonus:10,shuffle:3},
- {name:"中级",time:170,bonus:20,shuffle:3},
- {name:"高级",time:130,bonus:30,shuffle:2},
- {name:"特级",time:95, bonus:40,shuffle:2}];
+ {name:"初级",tick:600,shuffle:2,hints:4,cols:12,rows:7,kinds:21},
+ {name:"中级",tick:700,shuffle:3,hints:6,cols:14,rows:8,kinds:28},
+ {name:"高级",tick:800,shuffle:4,hints:8,cols:16,rows:9,kinds:36},
+ {name:"特高",tick:830,shuffle:5,hints:10,cols:18,rows:10,kinds:42}];
 // 11 种运行模式（关卡序号 0~10），消除一对后触发对应位移
 const LAYOUTS=[
  {name:"不变化",  mode:"none"},     // 0  不变化
@@ -174,23 +176,9 @@ const LAYOUTS=[
  {name:"向内集中",mode:"inward"}    // 10 向内集中（四象限各自向中心压实）
 ];
 // 原版音效映射(对照原程序)
-const SFX={
- select:"select",       // 点选一张牌 (wav_138)
- match:"match",         // 消除一对 (wav_139)
- error:"error",         // 选中相同但不可消除 (wav_140)
- cancel:"cancel",       // 右键取消 / 点不相同自动取消 (wav_147)
- hint:"hint",           // 点击提示按钮 (wav_150)
- shuffle:"shuffle",     // 洗牌(自动+手动) (wav_152)
- win:"win",             // 每关通过(非最后一关) (wav_149)
- winall:"winall",       // 所有关通关/最终胜利 (wav_148)
- gameover:"gameover",   // GAMEOVER(时间耗尽/死局无洗牌) (wav_151)
- r_hint:"r_hint",       // 奖励:提示点 (wav_143)
- r_time:"r_time",       // 奖励:时间/分数 (wav_145)
- r_misc1:"r_misc1",     // 奖励:某种 (wav_146)
- r_misc2:"r_misc2",     // 奖励:某种 (wav_153)
- punish:"punish"        // 惩罚:倒扣提示/时间/分数 (wav_144)
-};
-const TIME_BONUS=2; // 每消除一对奖励的秒数
+const SFX={select:"wav_138",match:"wav_139",error:"wav_140",cancel:"wav_147",
+ hint:"wav_150",shuffle:"wav_152",win:"wav_149",winall:"wav_148",gameover:"wav_151",
+ reward:"wav_143",rewardLarge:"wav_145",rewardTop:"wav_146",punish:"wav_144"};
 const boardEl=document.getElementById("board"),fx=document.getElementById("fx"),fctx=fx.getContext("2d");
 const $=id=>document.getElementById(id);
 let grid=[],tiles=new Map(),sel=null,hintPair=null;
@@ -201,11 +189,11 @@ $("setSel").value=tileSet;
 // ===== 资源预加载 =====
 const IMG={pet:[],jp:[],sign:[]};
 (function(){
- for(const s of["pet","jp","sign"])for(let i=0;i<KIND_COUNT;i++){const im=new Image();im.src=`assets/tiles/${s}_${String(i).padStart(2,"0")}.png`;IMG[s].push(im);}
+ for(const s of["pet","jp","sign"])for(let i=0;i<KIND_COUNT;i++){const im=new Image();im.src=`assets/${s==="pet"?"tiles_smooth64":"tiles"}/${s}_${String(i).padStart(2,"0")}.png`;IMG[s].push(im);}
 })();
 const AUDIO={};
 for(const k in SFX){const a=new Audio(`assets/sfx/${SFX[k]}.wav`);a.preload="auto";AUDIO[k]=a;}
-function play(k){if(!soundOn)return;const a=AUDIO[k];if(!a)return;try{a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
+function play(k,force=false){if(!soundOn&&!force)return;const a=AUDIO[k];if(!a)return;try{a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
 // ===== BGM（原版 MIDI 转为 MP3，播放结束后顺序切歌）=====
 const BGM_FILES=Array.from({length:17},(_,i)=>`assets/bgm/${101+i}.mp3`);
 const bgmAudio=new Audio();
@@ -230,6 +218,7 @@ function drawTile(el,kind){
  el.innerHTML="";
  const im=document.createElement("img");
  im.src=IMG[tileSet][kind].src;
+ if(tileSet==="pet")im.className="smooth";
  el.appendChild(im);
 }
 // ===== 工具 =====
@@ -249,53 +238,59 @@ function floatText(txt,type){
  boardEl.appendChild(d);
  setTimeout(()=>d.remove(),2900);
 }
-// 随机事件：消除后概率触发，奖励多惩罚少（约7:3）
+// 原版 CRT 随机数；种子不同，具体事件序列不保证与原版同步。
+let randomSeed=Date.now()>>>0,currentEvent=-1,eventTimer=null,clearing=false,resolving=false,matchTimer=null;
+function originalRand(){randomSeed=(Math.imul(randomSeed,214013)+2531011)>>>0;return(randomSeed>>>16)&32767;}
+function resetEvent(){clearTimeout(eventTimer);currentEvent=-1;}
 function randomEvent(){
- if(Math.random()>=EVENT_CHANCE)return; // 触发概率
- const isReward=Math.random()<0.7;      // 奖励70% / 惩罚30%
- const pool=isReward?REWARD_POOL:PUNISH_POOL;
- const k=pool[Math.floor(Math.random()*pool.length)];
- let txt="";
- switch(k){
-  case "hint":
-   if(isReward){hints++;txt="🎁 提示 +1";}else{if(hints<=0)return;hints--;txt="💢 提示 -1";}
-   break;
-  case "shuffle":
-   if(isReward){lives++;txt="🎁 洗牌 +1";}else{if(lives<=0)return;lives--;txt="💢 洗牌 -1";}
-   break;
-  case "score":
-   if(isReward){score+=10;txt="🎁 分数 +10";}else{if(score<=0)return;score=Math.max(0,score-10);txt="💢 分数 -10";}
-   break;
-  case "time":
-   if(isReward){remain=Math.min(levelTime(),remain+10);txt="🎁 时间 +10s";}else{if(remain<=5)return;remain=Math.max(1,remain-10);txt="💢 时间 -10s";}
-   break;
+ if(remain%12!==11||currentEvent>=0)return;
+ const branch=originalRand()%7;
+ let txt="",sound="reward",punishment=false;
+ if(diff===3){
+  switch(branch){
+   case 0:hints+=2;txt="提示 +2";sound="rewardLarge";break;
+   case 1:hints+=4;txt="提示 +4";sound="rewardTop";break;
+   case 2:lives++;txt="洗牌 +1";break;
+   case 3:hints++;txt="提示 +1";break;
+   case 4:remain+=14;txt="时间增加";break;
+   case 5:lives+=2;txt="洗牌 +2";sound="rewardLarge";break;
+   case 6:lives+=4;txt="洗牌 +4";sound="rewardTop";break;
+  }
+ }else{
+  switch(branch){
+   case 0:hints+=2;txt="提示 +2";sound="rewardLarge";break;
+   case 1:score+=2500;txt="分数 +2500";sound="rewardLarge";break;
+   case 2:if(hints<1||originalRand()%2!==0)return;hints--;txt="提示 -1";punishment=true;break;
+   case 3:hints++;txt="提示 +1";break;
+   case 4:remain+=14;txt="时间增加";break;
+   case 5:score+=1000;txt="分数 +1000";break;
+   case 6:if(remain<70||originalRand()%2!==0)return;remain-=14;txt="时间减少";punishment=true;break;
+  }
  }
- // 按原版：提示奖励=r_hint，时间/分数奖励=r_time，所有惩罚=punish
- play(k==="hint"&&isReward?"r_hint":(isReward?"r_time":"punish"));
- floatText(txt,isReward?"reward":"punish");
- logEvent(`随机${isReward?"奖励":"惩罚"}：${txt}`);
- updUI();
+ currentEvent=branch;
+ eventTimer=setTimeout(()=>{currentEvent=-1;},3000);
+ // 原版事件分支直接播放声音，不经过普通动作的音效开关。
+ play(punishment?"punish":sound,true);
+ floatText(txt,punishment?"punish":"reward");
+ logEvent(txt);updUI();
 }
-const EVENT_CHANCE=0.15;               // 每次消除15%概率触发随机事件
-// 奖励/惩罚均加权：分数/时间各40%，资源类(提示/洗牌)各10%
-const REWARD_POOL=["score","score","score","score","time","time","time","time","hint","shuffle"];
-const PUNISH_POOL=["score","score","score","score","time","time","time","time","hint","shuffle"];
 // ===== 棋盘生成 =====
 function emptyGrid(){return Array.from({length:ROWS+2},()=>Array(COLS+2).fill(-1));}
 function fillPositions(){
- const L=LAYOUTS[(level-1)%LAYOUTS.length];const pts=[];
- // 所有牌型都在真实8×12棋盘上生成，保证坐标合法；分离效果靠消除后的重力位移呈现
+ const pts=[];
+ // 按当前难度的行列数生成棋盘。
  for(let y=1;y<=ROWS;y++)for(let x=1;x<=COLS;x++)pts.push([x,y]);
  return pts;
 }
-// 按难度限制图案种类（原程序：简单模式只用部分图案）
-// 初级21种 / 中级28种 / 高级35种 / 特级42种
-const POOL_SIZES=[21,28,35,42];
-function kinds48(){
- const pool=POOL_SIZES[diff]||21;
- const order=shuffled([...Array(pool).keys()]);
- const ks=[];for(let i=0;i<COLS*ROWS/2;i++)ks.push(order[i%pool]);
- return ks;
+// 原版各图案4张；特高另外给连续6种图案各增加2张。
+function makeDeck(){
+ const pool=DIFF[diff].kinds,deck=[];
+ for(let i=0;i<pool;i++)for(let n=0;n<4;n++)deck.push(i);
+ if(diff===3){
+  const first=originalRand()%37;
+  for(let i=first;i<first+6;i++)deck.push(i,i);
+ }
+ return shuffled(deck);
 }
 function setupCanvas(){
  boardEl.style.width=COLS*TILE+"px";
@@ -306,25 +301,27 @@ function setupCanvas(){
 }
 function buildBoard(){ // 根据当前 level 铺牌（牌型由 level 决定）
  grid=emptyGrid();
- const kinds=kinds48(),deck=shuffled(kinds.concat(kinds)),pts=fillPositions();
+ const deck=makeDeck(),pts=fillPositions();
  pts.forEach((p,i)=>grid[p[1]][p[0]]=deck[i]);
- remain=levelTime();sel=null;
+ clearTimeout(matchTimer);resolving=false;
+ remain=levelTime();sel=null;resetEvent();clearing=false;
  renderAll();updUI();
 }
 function newGame(){
+ COLS=DIFF[diff].cols;ROWS=DIFF[diff].rows;
  setupCanvas();
- level=startLevel;lives=DIFF[diff].shuffle;hints=3;score=0;over=false;paused=false;
+ level=startLevel;lives=DIFF[diff].shuffle;hints=DIFF[diff].hints;score=0;over=false;paused=false;
  $("pauseMask").style.display="none";
- buildBoard();startTimer();play("levelstart");
+ buildBoard();startTimer();
  if(bgmOn)startBGM(); // 重新开局恢复音乐
 }
-function levelTime(){return DIFF[diff].time;}
+function levelTime(){return 300;}
 function nextLevel(){
  level++;
- lives++; // 每过一关，洗牌次数 +1
  if(level>MAX_LEVEL){finishGame();return;}
+ lives++;hints++;
  logEvent(`进入第${level}关，洗牌次数+1（现有${lives}）`);
- buildBoard();play("levelstart");
+ buildBoard();
 }
 // ===== 渲染 =====
 function renderAll(){
@@ -392,12 +389,12 @@ function findHint(){
 // ===== 点击 =====
 // 右键：取消当前点选
 function onRightClick(){
- if(paused||over)return;
+ if(paused||over||clearing)return;
  if(sel){const t=tiles.get(sel[0]+","+sel[1]);if(t)t.classList.remove("sel");sel=null;play("cancel");}
  clearHintFlash();
 }
 function onTile(x,y){
- if(paused||over)return;
+ if(paused||over||clearing||resolving)return;
  const k=grid[y][x];if(k<0)return;
  clearHintFlash();
  if(!sel){sel=[x,y];tiles.get(x+","+y).classList.add("sel");play("select");return;}
@@ -405,6 +402,7 @@ function onTile(x,y){
  const path=canLink(sel[0],sel[1],x,y);
  if(path){
   // 先画连线并保留牌，停留后再消除，让用户看到连线过程
+  resolving=true;
   drawPath(path,"#ff4040");play("match");
   const t1=tiles.get(sel[0]+","+sel[1]),t2=tiles.get(x+","+y);
   // 两张牌同步高亮
@@ -414,12 +412,12 @@ function onTile(x,y){
   grid[ay][ax]=-1;grid[y][x]=-1;
   tiles.delete(ax+","+ay);tiles.delete(x+","+y);
   sel=null;
-  setTimeout(()=>{fctx.clearRect(0,0,fx.width,fx.height);t1.remove();t2.remove();applyGravity();
-   score+=2;
-   // 每消除一对奖励时间，封顶不超过本关总时间
-   remain=Math.min(levelTime(),remain+TIME_BONUS);
-   randomEvent(); // 消除后随机触发奖励/惩罚
-   updUI();checkState();},180);
+  const delay=soundOn&&Number.isFinite(AUDIO.match.duration)?AUDIO.match.duration*1000:300;
+  matchTimer=setTimeout(()=>{resolving=false;if(over)return;fctx.clearRect(0,0,fx.width,fx.height);t1.remove();t2.remove();applyGravity();
+   score+=10;
+   // 原版时间槽：增加5，超过300时写入302
+   remain+=5;if(remain>300)remain=302;
+   updUI();checkState();},delay);
  }else{
   // 点了第二张但无法与第一张消除
   const same=grid[y][x]===grid[sel[1]][sel[0]];
@@ -487,7 +485,7 @@ function compactCol(x,y1,y2,rev){
 }
 function applyGravity(){
  const L=LAYOUTS[(level-1)%LAYOUTS.length];
- const MX=COLS/2, MY=ROWS/2; // 中线：6|7 列之间、4|5 行之间
+ const MX=Math.floor(COLS/2), MY=Math.floor(ROWS/2);
  switch(L.mode){
   case "none": break; // 0 不变化
   case "dir": // 1/2 单向平移：整体向一个方向压实（空洞移到反方向边界）
@@ -543,21 +541,22 @@ function compactQuad(y1,y2,x1,x2,revH,revV){
 // ===== 状态 =====
 function tilesLeft(){let n=0;for(let y=1;y<=ROWS;y++)for(let x=1;x<=COLS;x++)if(grid[y][x]>=0)n++;return n;}
 function checkState(){
+ if(clearing||over)return;
  if(tilesLeft()===0){
-  const timeBonus=Math.round(remain),diffBonus=DIFF[diff].bonus,gain=timeBonus+diffBonus;
-  score=Math.round(score+gain);updUI();play("win");
-  logEvent(`第${level}关过关，+${gain}分（时间${timeBonus}+难度${diffBonus}），总分${score}`);
-  setTimeout(()=>showClearDialog(gain,timeBonus,diffBonus),600);
+  clearing=true;clearInterval(timer);
+  const timeBonus=remain,resourceBonus=lives*20+hints*10,gain=timeBonus+resourceBonus;
+  score+=gain;updUI();play(level===MAX_LEVEL?"winall":"win");
+  logEvent(`第${level}关过关，+${gain}分（时间${timeBonus}+资源${resourceBonus}），总分${score}`);
+  showClearDialog(gain,timeBonus,resourceBonus);
   return;
  }
- if(!findHint())autoShuffle();
+ if(!findHint()){autoShuffle();return;}
+ randomEvent();
 }
-// 过关确认弹窗：显示本关得分，点确定才进下一关
-function showClearDialog(gain,timeBonus,diffBonus){
- clearInterval(timer); // 暂停计时，等用户确认
+function showClearDialog(gain,timeBonus,resourceBonus){
  $("clearGain").textContent="+"+gain;
- $("clearDetail").textContent=`时间奖励 +${timeBonus}　难度奖励 +${diffBonus}`;
- $("clearTotal").textContent=Math.round(score);
+ $("clearDetail").textContent=`时间奖励 +${timeBonus}　生命与提示奖励 +${resourceBonus}`;
+ $("clearTotal").textContent=score;
  $("clearDlg").classList.remove("hidden");
 }
 $("clearOk").onclick=()=>{
@@ -584,7 +583,8 @@ function reshuffle(free){
 // ===== 提示 =====
 function clearHintFlash(){document.querySelectorAll(".tile.hint").forEach(e=>e.classList.remove("hint"));}
 function doHint(){
- if(paused||over)return;
+ if(paused||over||clearing||resolving)return;
+ if(hints<=0){floatText("提示次数不足！","punish");return;}
  const h=findHint();
  if(!h){toast("没有可消除的组合");return;}
  if(hints>0){hints--;updUI();}
@@ -595,17 +595,18 @@ function doHint(){
  setTimeout(()=>{clearHintFlash();fctx.clearRect(0,0,fx.width,fx.height);},3000);
 }
 // ===== 计时 =====
+function timerTick(){
+ if(paused||over||clearing||resolving)return;
+ if(remain===0){score+=100;remain=-1;gameOver("时间到！");return;}
+ if(remain>0)remain--;
+ updTime();
+}
 function startTimer(){
  clearInterval(timer);
- timer=setInterval(()=>{
-  if(paused||over)return;
-  remain=Math.max(0,remain-0.1);
-  if(remain<=10&&Math.abs(remain%1)<0.05)play("tick");
-  updTime();
-  if(remain<=0)gameOver("时间到！");
- },100);
+ timer=setInterval(timerTick,DIFF[diff].tick);
 }
 function gameOver(msg){
+ if(over)return;
  stopBGM();
  over=true;clearInterval(timer);play("gameover");
  $("ovMsg").textContent=msg+`　最终得分：${Math.round(score)}`;
@@ -639,7 +640,7 @@ function promptRank(sc,cleared,reason){
 }
 function finishGame(){ // 11 关全部通关
  stopBGM();
- over=true;clearInterval(timer);play("winall");
+ over=true;clearInterval(timer);
  logEvent(`通关全部${MAX_LEVEL}关，得分${score}`);
  promptRank(score,true);
 }
@@ -659,7 +660,7 @@ function updUI(){
  $("diffName").textContent=DIFF[diff].name;updTime();
 }
 function updTime(){
- const total=levelTime(),p=Math.max(0,remain/total*100);
+ const total=levelTime(),p=Math.min(100,Math.max(0,remain/total*100));
  const bar=$("timebar");bar.style.width=p+"%";
  bar.classList.toggle("low",remain<=20);
 }
@@ -674,7 +675,7 @@ function togglePause(){
 }
 // ===== 事件 =====
 $("hintBtn").onclick=doHint;
-$("shuffleBtn").onclick=()=>{if(paused||over)return;if(lives<1){toast("洗牌次数不足！");play("error");return;}lives--;reshuffle();updUI();};
+$("shuffleBtn").onclick=()=>{if(paused||over||clearing||resolving)return;if(lives<1){floatText("洗牌次数不足！","punish");return;}lives--;reshuffle();updUI();};
 $("pauseBtn").onclick=togglePause;
 document.addEventListener("keydown",e=>{
  if(e.key==="p"||e.key==="P"||e.key==="Enter")togglePause();

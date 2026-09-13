@@ -37,7 +37,7 @@ with sync_playwright() as p:
     assert page.evaluate('bgmAudio.paused')
     page.locator('#bgmBtn').click()
     page.wait_for_function('!bgmAudio.paused')
-    assert page.locator('.tile img').evaluate_all('(imgs)=>imgs.every(i=>i.complete && i.naturalWidth===39)')
+    assert page.locator('.tile img').evaluate_all('(imgs)=>imgs.every(i=>i.complete && i.naturalWidth===64 && getComputedStyle(i).imageRendering==="auto")')
     page.screenshot(path=str(ROOT / 'verify/game-restored.png'), full_page=True)
     # Load metadata for every track through the same browser media pipeline.
     tracks = page.evaluate('''async()=>{const out=[]; for(const src of BGM_FILES){
