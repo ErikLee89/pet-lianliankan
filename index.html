@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>宠物连连看（原版素材复刻）</title>
+<title>宠物连连看</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"Microsoft YaHei",sans-serif;background:#1e1e2e;color:#eee;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:12px;user-select:none}
@@ -67,6 +67,7 @@ button:disabled{opacity:.4;cursor:default}
   <button id="pauseBtn">暂停</button>
   <button id="soundBtn">🔊 音效开</button>
   <button id="bgmBtn" style="opacity:.55">🎵 音乐关</button>
+  <button id="nextBgmBtn">下一首</button>
   <button id="menuBtn">返回菜单</button>
 </div>
 <div id="overlay">
@@ -193,7 +194,7 @@ const IMG={pet:[],jp:[],sign:[]};
 })();
 const AUDIO={};
 for(const k in SFX){const a=new Audio(`assets/sfx/${SFX[k]}.wav`);a.preload="auto";AUDIO[k]=a;}
-function play(k,force=false){if(!soundOn&&!force)return;const a=AUDIO[k];if(!a)return;try{a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
+function play(k){if(!soundOn)return;const a=AUDIO[k];if(!a)return;try{a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
 // ===== BGM（原版 MIDI 转为 MP3，播放结束后顺序切歌）=====
 const BGM_FILES=Array.from({length:17},(_,i)=>`assets/bgm/${101+i}.mp3`);
 const bgmAudio=new Audio();
@@ -239,7 +240,8 @@ function floatText(txt,type){
  setTimeout(()=>d.remove(),2900);
 }
 // 原版 CRT 随机数；种子不同，具体事件序列不保证与原版同步。
-let randomSeed=Date.now()>>>0,currentEvent=-1,eventTimer=null,clearing=false,resolving=false,matchTimer=null;
+let randomSeed=Date.now()>>>0,currentEvent=-1,eventTimer=null,clearing=false,resolving=false;
+const pendingMatches=new Set();
 function originalRand(){randomSeed=(Math.imul(randomSeed,214013)+2531011)>>>0;return(randomSeed>>>16)&32767;}
 function resetEvent(){clearTimeout(eventTimer);currentEvent=-1;}
 function randomEvent(){
@@ -269,8 +271,7 @@ function randomEvent(){
  }
  currentEvent=branch;
  eventTimer=setTimeout(()=>{currentEvent=-1;},3000);
- // 原版事件分支直接播放声音，不经过普通动作的音效开关。
- play(punishment?"punish":sound,true);
+ play(punishment?"punish":sound);
  floatText(txt,punishment?"punish":"reward");
  logEvent(txt);updUI();
 }
@@ -303,7 +304,8 @@ function buildBoard(){ // 根据当前 level 铺牌（牌型由 level 决定）
  grid=emptyGrid();
  const deck=makeDeck(),pts=fillPositions();
  pts.forEach((p,i)=>grid[p[1]][p[0]]=deck[i]);
- clearTimeout(matchTimer);resolving=false;
+ for(const job of pendingMatches){clearTimeout(job.timer);job.t1.remove();job.t2.remove();}
+ pendingMatches.clear();resolving=false;
  remain=levelTime();sel=null;resetEvent();clearing=false;
  renderAll();updUI();
 }
@@ -394,7 +396,7 @@ function onRightClick(){
  clearHintFlash();
 }
 function onTile(x,y){
- if(paused||over||clearing||resolving)return;
+ if(paused||over||clearing)return;
  const k=grid[y][x];if(k<0)return;
  clearHintFlash();
  if(!sel){sel=[x,y];tiles.get(x+","+y).classList.add("sel");play("select");return;}
@@ -413,11 +415,18 @@ function onTile(x,y){
   tiles.delete(ax+","+ay);tiles.delete(x+","+y);
   sel=null;
   const delay=soundOn&&Number.isFinite(AUDIO.match.duration)?AUDIO.match.duration*1000:300;
-  matchTimer=setTimeout(()=>{resolving=false;if(over)return;fctx.clearRect(0,0,fx.width,fx.height);t1.remove();t2.remove();applyGravity();
+  const job={t1,t2,timer:null};pendingMatches.add(job);
+  job.timer=setTimeout(()=>{
+   pendingMatches.delete(job);resolving=pendingMatches.size>0;
+   t1.remove();t2.remove();if(over)return;
+   fctx.clearRect(0,0,fx.width,fx.height);
+   const selected=sel?tiles.get(sel[0]+","+sel[1]):null;
+   applyGravity();
+   if(selected)sel=[+selected.dataset.x,+selected.dataset.y];
    score+=10;
    // 原版时间槽：增加5，超过300时写入302
    remain+=5;if(remain>300)remain=302;
-   updUI();checkState();},delay);
+   updUI();if(!resolving)checkState();},delay);
  }else{
   // 点了第二张但无法与第一张消除
   const same=grid[y][x]===grid[sel[1]][sel[0]];
@@ -686,8 +695,9 @@ document.addEventListener("keydown",e=>{
 });
 // 棋盘上任意右键都阻止默认菜单（含空白区域）
 document.getElementById("boardWrap").addEventListener("contextmenu",e=>{e.preventDefault();onRightClick();});
-$("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊 音效开":"🔇 音效关";};
+$("soundBtn").onclick=()=>{soundOn=!soundOn;if(!soundOn)Object.values(AUDIO).forEach(a=>a.pause());$("soundBtn").textContent=soundOn?"🔊 音效开":"🔇 音效关";};
 $("bgmBtn").onclick=()=>{setBGM(!bgmOn);$("bgmBtn").textContent=bgmOn?"🎵 音乐开":"🎵 音乐关";$("bgmBtn").style.opacity=bgmOn?"1":".55"};
+$("nextBgmBtn").onclick=()=>{nextBGM();if(!bgmOn)$("bgmBtn").click();};
 $("menuBtn").onclick=()=>{over=true;clearInterval(timer);stopBGM();$("overlay").classList.remove("hidden");$("ovMsg").textContent="";};
 $("startBtn").onclick=()=>{
  diff=+$("diffSel").value;tileSet=$("setSel").value;
