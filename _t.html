@@ -1,0 +1,9 @@
+<script>
+window.addEventListener('load',()=>{ setTimeout(()=>{
+ document.getElementById('overlay').classList.add('hidden');
+ newGame();paused=false;
+ floatText("🎁 提示 +1","reward");
+ setTimeout(()=>floatText("💢 分数 -10","punish"),700);
+ setTimeout(()=>floatText("🎁 时间 +10s","reward"),1400);
+},100);});
+</script>

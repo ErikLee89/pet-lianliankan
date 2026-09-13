@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>音效试听挑选（全部18个）</title>
+<style>
+body{background:#14141f;color:#eee;font-family:'Microsoft YaHei';padding:24px;max-width:900px;margin:0 auto}
+h1{color:#ffd54f;font-size:20px}
+.tip{color:#aaa;font-size:13px;margin:8px 0 18px;line-height:1.8;background:#1e1e30;padding:10px 14px;border-radius:8px}
+table{border-collapse:collapse;width:100%}
+th{background:#3949ab;padding:8px;text-align:left;font-size:13px}
+td{padding:7px 8px;border-bottom:1px solid #2a2a3d;font-size:13px;vertical-align:middle}
+tr:hover{background:#1e1e30}
+button{padding:5px 14px;border:none;border-radius:5px;cursor:pointer;font-size:12px;margin-right:4px}
+.play{background:#1976d2;color:#fff}
+.play:hover{background:#2196f3}
+.set-r{background:#2e7d32;color:#fff}
+.set-p{background:#c62828;color:#fff}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;margin-left:4px}
+.cur-r{background:#2e7d32}
+.cur-p{background:#c62828}
+.cur-o{background:#6a1b9a}
+.nonstd{color:#ff5252;font-size:11px}
+#result{margin-top:18px;padding:14px;background:#1e1e30;border-radius:8px;color:#7fff9e;font-size:15px;min-height:24px}
+.gray{color:#666}
+</style>
+</head>
+<body>
+<h1>🔊 原程序全部 18 个音效 · 试听挑选</h1>
+<div class="tip">
+点「▶ 试听」听后，给<b>奖励</b>和<b>惩罚</b>各选一个，点对应按钮标记。<br>
+<b style="color:#7fff9e">奖励</b>：消除时随机掉落（+提示/+洗牌/+分数/+时间），建议选<b>短促、上扬、清脆</b>的。<br>
+<b style="color:#ff8a80">惩罚</b>：消除时随机掉落（-提示/-洗牌/-分数/-时间），建议选<b>低沉、下坠</b>的。<br>
+红色 = 非标准采样率（原程序里可能有声、但浏览器播放需重采样，选中后我会处理）。<br>
+选好后把编号告诉我（如：奖励=154，惩罚=140）。
+</div>
+<table id="tbl">
+<tr><th>编号</th><th>时长</th><th>特点/原用途</th><th>试听</th><th>标记为</th></tr>
+</table>
+<div id="result"></div>
+<script>
+const AUDIOS=[
+ {id:137,note:"0.46s [原:提示hint]",cls:"gray"},
+ {id:138,note:"0.04s 极短叮声 [原:未知/现:右键取消]",tag:"取消",cls:"cur-o"},
+ {id:139,note:"0.15s [原:选中select]",cls:"gray"},
+ {id:140,note:"0.35s [原:错误error] 负面短音",nonstd:true},
+ {id:141,note:"1.18s [原:游戏结束gameover] 负面",nonstd:true},
+ {id:142,note:"0.61s [原:洗牌shuffle]",nonstd:true,cls:"gray"},
+ {id:143,note:"1.69s 高频下行"},
+ {id:144,note:"2.14s [原:过关win] 欢快",cls:"gray"},
+ {id:145,note:"0.67s [当前:奖励音]",tag:"奖励",cls:"cur-r"},
+ {id:146,note:"2.91s 中频下行"},
+ {id:147,note:"0.13s [原:倒计时tick]",cls:"gray"},
+ {id:148,note:"2.69s 低频上行(低沉)",nonstd:true},
+ {id:149,note:"1.52s [当前:惩罚音] 你说像过关",tag:"惩罚",cls:"cur-p"},
+ {id:150,note:"0.55s [原:消除match]",cls:"gray"},
+ {id:151,note:"2.62s 低频上行"},
+ {id:152,note:"1.12s 中低频下行"},
+ {id:153,note:"0.91s [原:关卡开始levelstart]",cls:"gray"},
+ {id:154,note:"0.44s 短促上行(清脆)"},
+];
+const chosen={reward:145,punish:149};
+const players={};
+const tbl=document.getElementById("tbl");
+AUDIOS.forEach(a=>{
+ const tr=document.createElement("tr");
+ const idCell=a.nonstd?`<td style="color:#ff5252">wav_${a.id}<span class="nonstd">⚠</span></td>`:`<td>wav_${a.id}</td>`;
+ const tag=a.tag?`<span class="badge ${a.cls}">${a.tag}</span>`:"";
+ tr.innerHTML=`${idCell}<td class="gray">${a.note.split("s ")[0]}s</td><td>${a.note}${tag}</td>`;
+ const tdPlay=document.createElement("td");
+ const pb=document.createElement("button");pb.className="play";pb.textContent="▶ 试听";
+ pb.onclick=()=>{
+   if(!players[a.id]){players[a.id]=new Audio(`assets/sfx/wav_${a.id}.wav`);}
+   const ad=players[a.id];ad.currentTime=0;ad.play().catch(e=>alert("播放失败: "+e.message));
+ };
+ tdPlay.appendChild(pb);
+ tr.appendChild(tdPlay);
+ const tdSet=document.createElement("td");
+ const br=document.createElement("button");br.className="set-r";br.textContent="设为奖励";
+ br.onclick=()=>{chosen.reward=a.id;show();};
+ const bp=document.createElement("button");bp.className="set-p";bp.textContent="设为惩罚";
+ bp.onclick=()=>{chosen.punish=a.id;show();};
+ tdSet.appendChild(br);tdSet.appendChild(bp);
+ tr.appendChild(tdSet);
+ tbl.appendChild(tr);
+});
+function show(){
+ document.getElementById("result").innerHTML=
+ `✅ 当前选择：奖励 = <b>wav_${chosen.reward}</b>　　惩罚 = <b>wav_${chosen.punish}</b><br><span style="color:#aaa;font-size:13px">把这两个编号发给我，我替换进游戏</span>`;
+}
+show();
+</script>
+</body>
+</html>

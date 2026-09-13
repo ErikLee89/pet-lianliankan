@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+backup-before-audio-icons/
+tools/reverse_deps/
+tools/audio/fluidsynth/
+tools/audio/fluidsynth.zip
+tools/audio/TimGM6mb.sf2
+*.render.wav

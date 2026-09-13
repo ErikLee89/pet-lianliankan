@@ -1,0 +1,92 @@
+{
+  "source": "D:\\Program Files (x86)\\llkwqb\\midi",
+  "synthesizer": "FluidSynth 2.4.7",
+  "soundfont": "TimGM6mb.sf2",
+  "tracks": [
+    {
+      "file": "101.mp3",
+      "seconds": 292.467,
+      "bytes": 7020504
+    },
+    {
+      "file": "102.mp3",
+      "seconds": 101.506,
+      "bytes": 2437582
+    },
+    {
+      "file": "103.mp3",
+      "seconds": 215.748,
+      "bytes": 5179812
+    },
+    {
+      "file": "104.mp3",
+      "seconds": 278.581,
+      "bytes": 6687600
+    },
+    {
+      "file": "105.mp3",
+      "seconds": 314.735,
+      "bytes": 7555283
+    },
+    {
+      "file": "106.mp3",
+      "seconds": 246.77,
+      "bytes": 5923988
+    },
+    {
+      "file": "107.mp3",
+      "seconds": 224.084,
+      "bytes": 5379805
+    },
+    {
+      "file": "108.mp3",
+      "seconds": 261.074,
+      "bytes": 6267551
+    },
+    {
+      "file": "109.mp3",
+      "seconds": 295.079,
+      "bytes": 7083198
+    },
+    {
+      "file": "110.mp3",
+      "seconds": 172.478,
+      "bytes": 4140974
+    },
+    {
+      "file": "111.mp3",
+      "seconds": 185.794,
+      "bytes": 4460713
+    },
+    {
+      "file": "112.mp3",
+      "seconds": 309.557,
+      "bytes": 7431149
+    },
+    {
+      "file": "113.mp3",
+      "seconds": 152.683,
+      "bytes": 3665755
+    },
+    {
+      "file": "114.mp3",
+      "seconds": 192.493,
+      "bytes": 4621209
+    },
+    {
+      "file": "115.mp3",
+      "seconds": 263.07,
+      "bytes": 6315198
+    },
+    {
+      "file": "116.mp3",
+      "seconds": 304.866,
+      "bytes": 7318300
+    },
+    {
+      "file": "117.mp3",
+      "seconds": 265.195,
+      "bytes": 6365980
+    }
+  ]
+}

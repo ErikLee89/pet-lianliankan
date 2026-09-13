@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><script>
+const log=[];
+async function test(){
+  const t0=performance.now();
+  const a=new Audio("assets/bgm/102.mp3");
+  a.volume=0.3;
+  const ok=await a.play().then(()=>true).catch(e=>{log.push("ERR:"+e.name);return false;});
+  const t1=performance.now();
+  log.push(`play()调用耗时 ${(t1-t0).toFixed(0)}ms, 成功=${ok}`);
+  if(ok){await new Promise(r=>{a.onplaying=r;setTimeout(r,3000);});log.push(`到真正出声总耗时 ${(performance.now()-t0).toFixed(0)}ms`);}
+  a.pause();
+  document.title="TESTDONE:"+log.join(" | ");
+  document.body.textContent=document.title;
+}
+setTimeout(test,300);
+</script>EOF
+"D:\Program Files\WPS Comate\scripts\apps\basic\tools\chromium\versions\1.61.0\chromium-1228\chrome-win64\chrome.exe" --headless=new --disable-gpu --allow-file-access-from-files --virtual-time-budget=6000 --dump-dom "file:///D:/test/lianliankan/_bgmtest.html" 2>/dev/null | grep -o 'TESTDONE:[^<]*' ; rm -f _bgmtest.html
