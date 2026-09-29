@@ -19,3 +19,4 @@
 - `index.html`：游戏页面和逻辑。
 - `assets/`：图标、音乐和音效。
 - `docs/`：原版规则核对记录。
+- `CHANGELOG.md`：更新记录。
