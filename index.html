@@ -7,9 +7,13 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:"Microsoft YaHei",sans-serif;background:#1e1e2e;color:#eee;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:12px;user-select:none}
 h1{font-size:22px;margin:4px 0 8px;color:#ffd54f;letter-spacing:2px}
-#statusbar{display:flex;gap:14px;align-items:center;background:#2a2a3d;padding:8px 14px;border-radius:8px;font-size:13px;flex-wrap:wrap;justify-content:center;max-width:640px}
+#statusbar{display:flex;gap:14px;align-items:center;background:#2a2a3d;padding:8px 14px;border-radius:8px;font-size:13px;flex-wrap:wrap;justify-content:center;width:640px;max-width:100%}
+#actionDlg::backdrop{background:#000b}
+#practiceTools{position:relative}
+#practiceTools[open]{background:#2a2a3d;border-radius:6px}
 #statusbar b{color:#ffd54f}
-#timebarWrap{flex:1;min-width:140px;height:14px;background:#111;border:1px solid #555;border-radius:7px;overflow:hidden}
+#statusbar>span{white-space:nowrap}
+#timebarWrap{width:640px;max-width:100%;margin-top:8px;height:14px;background:#111;border:1px solid #555;border-radius:7px;overflow:hidden}
 #timebar{height:100%;width:100%;background:linear-gradient(90deg,#4caf50,#8bc34a);transition:width .1s linear}
 #timebar.low{background:linear-gradient(90deg,#f44336,#ff5722)}
 #timebar.bonus{box-shadow:0 0 10px 3px #6dff6d;filter:brightness(1.6)}
@@ -33,33 +37,89 @@ h1{font-size:22px;margin:4px 0 8px;color:#ffd54f;letter-spacing:2px}
 .tile img.smooth{image-rendering:auto}
 @keyframes hf{0%,100%{box-shadow:2px 2px 0 rgba(60,20,80,.85)}50%{box-shadow:0 0 12px 4px #ff5252;transform:scale(1.12)}}
 .tile.hint{animation:hf .5s ease-in-out infinite}
-#toolbar{display:flex;gap:10px;margin-top:12px}
+#toolbar{display:flex;align-items:center;gap:10px;margin-top:12px}
 button{background:#3949ab;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:14px;cursor:pointer}
 button:hover{background:#5c6bc0}
 button:disabled{opacity:.4;cursor:default}
-#overlay{position:fixed;inset:0;background:rgba(10,10,20,.92);display:flex;align-items:center;justify-content:center;z-index:20}
+/* 开始界面：title.jpg 铺满整屏作背景，菜单面板浮在图片上方 */
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;
+ padding:12px;overflow-y:auto;
+ background-color:#0b0b12;
+ background-image:linear-gradient(180deg,rgba(8,8,16,.52),rgba(8,8,16,.86)),url("assets/bg/title.jpg");
+ background-position:center,center;background-size:cover,cover;background-repeat:no-repeat,no-repeat}
 #overlay.hidden{display:none}
-#menuBox{display:flex;gap:18px;align-items:stretch;max-width:720px}
-#menuBox img{width:340px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.7)}
-#menuPanel{background:#2a2a3d;padding:22px 28px;border-radius:10px;text-align:center;min-width:260px;display:flex;flex-direction:column;justify-content:center}
-#menuPanel h2{color:#ffd54f;margin-bottom:14px}
-#menuPanel label{display:block;margin:8px 0 4px;color:#aaa;font-size:13px}
-#menuPanel select{width:100%;padding:6px;margin-bottom:6px;font-size:14px;background:#1e1e2e;color:#eee;border:1px solid #555;border-radius:4px}
-#startBtn{margin-top:14px;font-size:16px;padding:10px}
-#toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#000c;padding:8px 18px;border-radius:6px;font-size:14px;z-index:30;opacity:0;transition:opacity .3s;pointer-events:none}
+/* margin:auto 而非靠 align-items:center 居中：内容高于视口时 auto 外边距归零，顶部不会被裁掉，整块可滚动。
+   两栏顶部对齐，并按较高一栏的内容等高显示 */
+#menuBox{display:flex;gap:18px;align-items:stretch;margin:auto;max-width:100%}
+
+/* ===== 菜单卡片 ===== 菜单面板与“玩法与操作”是一对，共用同一套卡片外观（玻璃底、圆角、描边、投影、内边距） */
+#menuPanel,#gameHelp{background:rgba(26,26,44,.90);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);
+ border:1px solid rgba(255,255,255,.14);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.75);
+ padding:18px 24px 20px;display:flex;flex-direction:column;overflow:hidden}
+/* 两张卡的标题同一套排版，标题下的分隔线与卡内分节线同色，形成一致的分栏节奏 */
+#menuPanel h2,#gameHelp h2{font-size:17px;font-weight:bold;color:#ffd54f;letter-spacing:2px;text-align:center;
+ padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,.12)}
+
+#menuPanel{width:320px;flex:0 0 auto;text-align:center}
+#ovMsg:empty{display:none}
+#menuPanel label{display:block;margin:13px 0 5px;color:#a1a4bd;font-size:12px;letter-spacing:.5px}
+.menuHint{margin-top:4px;font-size:12px;color:#a1a4bd}
+#menuPanel select{width:100%;padding:7px;margin-bottom:5px;font-size:14px;background:#1e1e2e;color:#eee;border:1px solid #555;border-radius:4px}
+/* 底部动作区：用一条与卡内分节线同色的分隔线切开，和右侧“01/02/03”的分节方式呼应 */
+#menuPanel .menuActions{margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.12);
+ display:flex;flex-direction:column;gap:10px}
+#resumeBtn{background:#388e3c;display:flex;flex-direction:column;gap:4px;line-height:1.5}
+#resumeBtn[hidden]{display:none}
+#resumeBtn small{font-size:11px;font-weight:normal;color:#e0f0df}
+#startBtn{font-size:16px;padding:11px}
+#rankBtn{background:#6d4c41}
+#menuPractice{margin-top:14px;padding:12px 14px;border:1px solid #515570;border-radius:8px;background:rgba(255,255,255,.035);text-align:left}
+#menuPractice h3{font-size:13px;font-weight:600;color:#d7c692;letter-spacing:1px}
+#menuPractice label{margin-top:8px}
+#menuPractice .menuHint{font-size:11px;line-height:1.6}
+
+
+/* 玩法与操作：常驻右栏，完整展示（不折叠、不内部滚动）。
+   分两栏排版，让它与左侧菜单卡高度接近，两块卡片构成一组 */
+#gameHelp{width:600px;flex:0 0 auto;text-align:left}
+.helpBody{columns:2;column-gap:28px;column-rule:1px solid rgba(255,255,255,.14);
+ font-size:13px;line-height:1.75;color:#c7c8d8}
+.helpSection{break-inside:avoid;padding-bottom:14px}
+.helpSection h3{display:flex;align-items:center;gap:9px;font-size:13px;color:#f0e5c5;margin-bottom:8px;font-weight:600;letter-spacing:.5px}
+.helpSection h3 span{font-size:11px;font-variant-numeric:tabular-nums;color:#c9a95d;letter-spacing:1px}
+.helpSection p+p{margin-top:8px}
+.helpSection strong{color:#f0e5c5;font-weight:600}
+.helpControls{margin:0}
+.helpControls>div{display:grid;grid-template-columns:82px 1fr;gap:8px;padding:5px 0}
+.helpControls dt{color:#a1a4bd}
+.helpControls dd{margin:0}
+.helpBody kbd{display:inline-block;min-width:23px;padding:0 6px;border:1px solid #62657e;border-bottom-width:2px;border-radius:4px;background:#303247;color:#eee;font-family:inherit;font-size:11px;line-height:1.7;text-align:center}
+.helpNote{margin-top:9px;padding:8px 10px;border-left:2px solid #b59b60;background:rgba(255,255,255,.06);color:#d6c59e;font-size:12px;border-radius:0 4px 4px 0}
+.helpBody .helpMuted{color:#a1a4bd;font-size:12px}
+.helpFootnote{color:#a1a4bd;font-size:12px;break-inside:avoid}
+@media (max-width:1000px){
+ #menuBox{flex-direction:column;gap:14px}
+ #menuPanel,#gameHelp{width:100%}
+ /* 单栏时恢复分节线（两栏时靠竖线分隔，加横线会在第二栏顶部留下断头线） */
+ .helpBody{columns:1}
+ .helpSection+.helpSection{border-top:1px solid rgba(255,255,255,.12);padding-top:12px}
+ .helpFootnote{border-top:1px solid rgba(255,255,255,.12);padding-top:12px}
+}
+#toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#000c;padding:8px 18px;border-radius:6px;font-size:14px;z-index:60;opacity:0;transition:opacity .3s;pointer-events:none}
 </style>
 </head>
 <body>
 <h1>🐾 宠物连连看 <span style="font-size:12px;color:#888">v2.0</span></h1>
 <div id="statusbar">
+  <span id="runMode" style="color:#ffd54f">正式局</span>
   <span>难度：<b id="diffName">初级</b></span>
   <span>关卡：<b id="lv">1</b></span>
   <span>牌型：<b id="lay">不变化</b></span>
-  <div id="timebarWrap"><div id="timebar"></div></div>
   <span>洗牌：<b id="lives">2</b></span>
   <span>提示：<b id="hints">4</b></span>
   <span>得分：<b id="score">0</b></span>
 </div>
+<div id="timebarWrap" aria-label="剩余时间"><div id="timebar"></div></div>
 <div id="boardWrap">
   <div id="board"></div>
   <canvas id="fx"></canvas>
@@ -67,16 +127,19 @@ button:disabled{opacity:.4;cursor:default}
 <div id="toolbar">
   <button id="hintBtn">提示</button>
   <button id="shuffleBtn">重排</button>
-  <button id="jumpBtn">跳关</button>
+  <details id="practiceTools"><summary style="cursor:pointer;padding:8px">练习设置</summary><button id="jumpBtn">跳关</button><button id="practiceCheatBtn">秘籍</button><div style="font-size:12px;color:#bbb">使用后计入练习榜</div></details>
   <button id="pauseBtn">暂停</button>
   <button id="soundBtn">🔊 音效开</button>
-  <button id="bgmBtn" style="opacity:.55">🎵 音乐关</button>
+  <button id="bgmBtn">🎵 音乐开</button>
   <button id="nextBgmBtn">下一首</button>
   <button id="menuBtn">返回菜单</button>
 </div>
+<div style="display:flex;gap:20px;margin-top:10px;font-size:13px">
+ <label>音乐 <input id="musicVolume" type="range" min="0" max="100" aria-label="音乐音量"> <output id="musicVolumeText"></output></label>
+ <label>音效 <input id="soundVolume" type="range" min="0" max="100" aria-label="音效音量"> <output id="soundVolumeText"></output></label>
+</div>
 <div id="overlay">
   <div id="menuBox">
-    <img src="assets/bg/title.jpg" alt="连连看4">
     <div id="menuPanel">
       <h2>游戏菜单</h2>
       <div id="ovMsg" style="min-height:22px;color:#ff8a80;margin-bottom:6px"></div>
@@ -93,15 +156,51 @@ button:disabled{opacity:.4;cursor:default}
         <option value="jp">极品图案</option>
         <option value="sign">方位路标</option>
       </select>
-      <label>起始关卡（测试用）</label>
-      <select id="levelSel"></select>
-      <button id="startBtn">开始游戏</button>
-      <button id="rankBtn" style="margin-top:8px;background:#6d4c41">🏆 排行榜</button>
-      <div style="margin-top:12px;font-size:12px;color:#888">规则：连接两张相同图案，连线转折不超过 2 次即可消除<br>每过一关洗牌次数 +1、提示 +1　P/回车：暂停　L：跳到下一关</div>
-    </div>
+      <section id="menuPractice" aria-labelledby="practiceTitle"><h3 id="practiceTitle">练习设置</h3><label for="levelSel">起始关卡</label><select id="levelSel"></select><div class="menuHint">非第一关开局计入练习榜</div></section>
+      <div class="menuActions">
+        <button id="resumeBtn" hidden>继续上次游戏</button>
+        <button id="startBtn">开始游戏</button>
+        <button id="rankBtn">🏆 排行榜</button>
+      </div>
+    </div><!-- /#menuPanel -->
+
+    <section id="gameHelp" aria-label="玩法与操作">
+      <h2>玩法与操作</h2>
+      <div class="helpBody">
+        <section class="helpSection">
+          <h3><span>01</span> 消除规则</h3>
+          <p>连接两张<strong>相同图案</strong>，连线最多转 <strong>2 次弯</strong>。清空棋盘，即可进入下一关。</p>
+          <p class="helpMuted">不同关卡中，消除后的图案会按不同方向移动。</p>
+        </section>
+        <section class="helpSection">
+          <h3><span>02</span> 操作与道具</h3>
+          <dl class="helpControls">
+            <div><dt>选牌 / 取消</dt><dd><kbd>左键</kbd> 选牌 · <kbd>右键</kbd> 取消</dd></div>
+            <div><dt>暂停 / 继续</dt><dd><kbd>P</kbd> 或 <kbd>Enter</kbd></dd></div>
+            <div><dt>提示</dt><dd>指出一对可消除的牌</dd></div>
+            <div><dt>重排</dt><dd>打乱剩余图案</dd></div>
+          </dl>
+          <p class="helpNote">每过一关，提示和重排次数各增加 1 次。</p>
+          <p class="helpMuted">正式局也可在“练习设置”中打开跳关和秘籍；实际跳关或增加时间、道具次数后，本局转为练习局。</p>
+        </section>
+        <section class="helpSection">
+          <h3><span>03</span> 进度与成绩</h3>
+          <p><strong>随时继续</strong> · 进度保存在当前浏览器，刷新或返回菜单后可继续。开始新游戏会覆盖旧进度。</p>
+          <p><strong>结算保留</strong> · 未保存的成绩会保留，直到你保存或跳过。</p>
+          <p><strong>正式榜</strong> · 从第一关正常游玩；个人纪录按名字和难度统计，仅计已保存的正式成绩。</p>
+          <p><strong>练习榜</strong> · 收录练习局成绩；从非第一关开局也属于练习局。旧版记录可在“历史成绩”查看。</p>
+        </section>
+        <p class="helpFootnote">右键误触后退？可在 Edge 设置中关闭鼠标手势。</p>
+      </div>
+    </section>
   </div>
 </div>
 <div id="toast"></div>
+<dialog id="actionDlg" style="margin:auto;background:#2a2a3d;color:#eee;border:1px solid #666;border-radius:12px;padding:24px;max-width:400px">
+ <h2 id="actionTitle" style="color:#ffd54f;margin-bottom:12px"></h2>
+ <p id="actionText" style="line-height:1.7;margin-bottom:18px"></p>
+ <div style="display:flex;gap:12px;justify-content:center"><button id="actionCancel" autofocus>取消</button><button id="actionConfirm" style="background:#b64b45">确定</button></div>
+</dialog>
 <!-- 排行榜输入对话框 -->
 <div id="rankDlg" class="hidden">
   <div style="background:#2a2a3d;padding:24px 30px;border-radius:10px;text-align:center;min-width:300px">
@@ -112,7 +211,10 @@ button:disabled{opacity:.4;cursor:default}
     <div style="display:flex;gap:10px;justify-content:center">
       <button id="rankSave" style="background:#3949ab">保存成绩</button>
       <button id="rankSkip" style="background:#555">跳过</button>
+      <button id="rankAgain" style="background:#388e3c">再玩一局</button>
     </div>
+    <div id="personalBest" style="margin-top:12px;color:#8fdaff" role="status"></div>
+    <div id="rankResult" style="margin-top:12px;color:#ffd54f" role="status"></div>
     <div id="rankTable" style="margin-top:16px;max-height:220px;overflow:auto"></div>
   </div>
 </div>
@@ -196,6 +298,8 @@ button:disabled{opacity:.4;cursor:default}
 <div id="rankView" class="hidden">
   <div style="background:#2a2a3d;padding:24px 30px;border-radius:10px;text-align:center;min-width:320px">
     <h2 style="color:#ffd54f;margin-bottom:12px">🏆 排行榜</h2>
+    <label>榜单 <select id="rankMode"><option value="official">正式榜</option><option value="practice">练习榜</option><option value="legacy">历史成绩</option></select></label>
+    <label>难度 <select id="rankDiff" style="margin-bottom:12px;padding:6px"></select></label>
     <div id="rankViewTable" style="max-height:300px;overflow:auto"></div>
     <details style="margin-top:12px;text-align:left">
       <summary style="cursor:pointer;color:#888;font-size:12px">最近事件日志（排查"莫名退出"）</summary>
@@ -245,9 +349,78 @@ const boardEl=document.getElementById("board"),fx=document.getElementById("fx"),
 const $=id=>document.getElementById(id);
 let grid=[],tiles=new Map(),sel=null,hintPair=null;
 let level=1,diff=0,score=0,lives=3,hints=3,remain=0,timer=null,paused=false,over=false,soundOn=true;
+let practice=false;
 let startLevel=1; // 起始关卡（测试用，可从菜单选）
 let tileSet=localStorage.getItem("llk_tileset")||"pet";
 $("setSel").value=tileSet;
+// 输入与计时统一通过此处判断当前界面状态。
+function gameState(){
+ if($("actionDlg").open)return "confirm";
+ if(!$("rankDlg").classList.contains("hidden"))return "result";
+ if(!$("rankView").classList.contains("hidden"))return "ranks";
+ if(askOpen())return "ask";
+ if(clearing)return "clear";
+ if(cheatOn)return "cheat";
+ if(jumpOn)return "jump";
+ if(!$("overlay").classList.contains("hidden"))return "menu";
+ if(over)return "ended";
+ return paused?"paused":"playing";
+}
+let confirmAction=null;
+function confirmGameAction(title,message,action){
+ confirmAction=action;$("actionTitle").textContent=title;$("actionText").textContent=message;
+ $("actionDlg").showModal();$("actionCancel").focus();
+}
+$("actionCancel").onclick=()=>{$("actionDlg").close();confirmAction=null;};
+$("actionDlg").addEventListener("cancel",()=>{confirmAction=null;});
+$("actionConfirm").onclick=()=>{const action=confirmAction;confirmAction=null;$("actionDlg").close();action?.();};
+// ===== 本局进度 =====
+const PROGRESS_KEY="llk_progress_v1";
+function readProgress(){
+ try{
+  const p=JSON.parse(localStorage.getItem(PROGRESS_KEY));
+  if(!p||p.version!==1||!Number.isInteger(p.diff)||!DIFF[p.diff]||!["pet","jp","sign"].includes(p.tileSet))return null;
+  const d=DIFF[p.diff];
+  if(![p.level,p.startLevel].every(v=>Number.isInteger(v)&&v>=1&&v<=MAX_LEVEL))return null;
+  if(![p.score,p.remain,p.lives,p.hints].every(v=>Number.isFinite(v)&&v>=0))return null;
+  if(!Array.isArray(p.grid)||p.grid.length!==d.rows+2||!p.grid.every(row=>Array.isArray(row)&&row.length===d.cols+2&&row.every(v=>Number.isInteger(v)&&v>=-1&&v<KIND_COUNT)))return null;
+  return p;
+ }catch(e){return null;}
+}
+function refreshResumeButton(){
+ const p=readProgress();$("resumeBtn").hidden=!p;
+ $("startBtn").textContent=p?"开始新游戏":"开始游戏";
+ if(p){
+  const saved=Number.isFinite(p.savedAt)&&p.savedAt>0?new Date(p.savedAt):null;
+  const time=saved&&!Number.isNaN(saved.getTime())?saved.toLocaleString("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}):"时间未记录";
+  $("resumeBtn").replaceChildren();
+  const title=document.createElement("span");title.textContent="继续上次游戏";
+  const info=document.createElement("small");info.textContent=`${DIFF[p.diff].name} · 第 ${p.level} 关 · ${Math.round(p.score)} 分`;
+  const date=document.createElement("small");date.textContent=`保存于 ${time}`;
+  $("resumeBtn").append(title,info,date);
+ }
+}
+function clearProgress(){
+ try{localStorage.removeItem(PROGRESS_KEY);}catch(e){}
+ $("resumeBtn").hidden=true;
+}
+function saveProgress(){
+ if(over||resolving||!grid.length||!$("overlay").classList.contains("hidden"))return;
+ try{localStorage.setItem(PROGRESS_KEY,JSON.stringify({version:1,diff,tileSet,level,startLevel,score,lives,hints,remain,grid,clearing,randomSeed,currentEvent,practice,savedAt:Date.now()}));}catch(e){}
+}
+$("resumeBtn").onclick=()=>{
+ const p=readProgress();if(!p){refreshResumeButton();return;}
+ practice=p.practice!==false||p.startLevel!==1;
+ diff=p.diff;tileSet=p.tileSet;level=p.level;startLevel=p.startLevel;
+ score=p.score;lives=p.lives;hints=p.hints;remain=p.remain;grid=p.grid;
+ COLS=DIFF[diff].cols;ROWS=DIFF[diff].rows;over=false;paused=false;clearing=!!p.clearing;
+ resetEvent();randomSeed=p.randomSeed>>>0;
+ if(Number.isInteger(p.currentEvent)&&p.currentEvent>=0){currentEvent=p.currentEvent;eventTimer=setTimeout(()=>{currentEvent=-1;},3000);}
+ armGameHistory();$("overlay").classList.add("hidden");
+ setupCanvas();renderAll();updUI();
+ if(clearing)showClearDialog(remain+lives*20+hints*10,remain,lives*20+hints*10);
+ else{setPaused(true);openAsk("pause");}
+};
 // ===== 资源预加载 =====
 const IMG={pet:[],jp:[],sign:[]};
 (function(){
@@ -255,13 +428,18 @@ const IMG={pet:[],jp:[],sign:[]};
 })();
 const AUDIO={};
 for(const k in SFX){const a=new Audio(`assets/sfx/${SFX[k]}.wav`);a.preload="auto";AUDIO[k]=a;}
+function readVolume(key,fallback){
+ try{const v=localStorage.getItem(key);return v!==null&&Number.isFinite(+v)?Math.max(0,Math.min(1,+v)):fallback;}catch(e){return fallback;}
+}
+let soundVolume=readVolume("llk_sound_volume",1);
+Object.values(AUDIO).forEach(a=>a.volume=soundVolume);
 function play(k){if(!soundOn)return;const a=AUDIO[k];if(!a)return;try{a.currentTime=0;a.play().catch(()=>{});}catch(e){}}
 // ===== BGM（原版 MIDI 转为 MP3，播放结束后顺序切歌）=====
 const BGM_FILES=Array.from({length:17},(_,i)=>`assets/bgm/${101+i}.mp3`);
 const bgmAudio=new Audio();
 bgmAudio.preload="metadata";
-bgmAudio.volume=0.6;
-let bgmOn=false,bgmIdx=Math.floor(Math.random()*BGM_FILES.length);
+bgmAudio.volume=readVolume("llk_music_volume",0.6);
+let bgmOn=true,bgmIdx=Math.floor(Math.random()*BGM_FILES.length);
 async function startBGM(){
  if(!bgmOn||paused||over)return;
  if(bgmAudio.getAttribute("src")!==BGM_FILES[bgmIdx])bgmAudio.src=BGM_FILES[bgmIdx];
@@ -275,6 +453,16 @@ function stopBGM(){bgmAudio.pause();}
 function setBGM(on){bgmOn=on;if(on)startBGM();else stopBGM();}
 function nextBGM(){stopBGM();bgmIdx=(bgmIdx+1)%BGM_FILES.length;if(bgmOn)startBGM();}
 bgmAudio.addEventListener("ended",nextBGM);
+for(const [id,value] of[["musicVolume",bgmAudio.volume],["soundVolume",soundVolume]]){
+ $(id).value=Math.round(value*100);$(id+"Text").textContent=$(id).value+"%";
+ $(id).oninput=()=>{
+  const value=+$(id).value/100;
+  if(id==="musicVolume")bgmAudio.volume=value;
+  else{soundVolume=value;Object.values(AUDIO).forEach(a=>a.volume=value);}
+  $(id+"Text").textContent=$(id).value+"%";
+  localStorage.setItem(id==="musicVolume"?"llk_music_volume":"llk_sound_volume",String(value));
+ };
+}
 // ===== 牌面 =====
 function drawTile(el,kind){
  el.innerHTML="";
@@ -285,7 +473,8 @@ function drawTile(el,kind){
 }
 // ===== 工具 =====
 function shuffled(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function toast(m){const t=$("toast");t.textContent=m;t.style.opacity=1;setTimeout(()=>t.style.opacity=0,1600);}
+let toastTimer=null;
+function toast(m,duration=1600){clearTimeout(toastTimer);const t=$("toast");t.textContent=m;t.style.opacity=1;toastTimer=setTimeout(()=>t.style.opacity=0,duration);}
 // ===== 随机奖励/惩罚 =====
 // 飘字提示：棋盘中央飘出文字，金色=奖励，红色=惩罚
 function floatText(txt,type){
@@ -371,6 +560,7 @@ function buildBoard(){ // 根据当前 level 铺牌（牌型由 level 决定）
  renderAll();updUI();
 }
 function newGame(){
+ practice=startLevel!==1;
  COLS=DIFF[diff].cols;ROWS=DIFF[diff].rows;
  setupCanvas();
  level=startLevel;lives=DIFF[diff].shuffle;hints=DIFF[diff].hints;score=0;over=false;paused=false;
@@ -416,23 +606,33 @@ function canLink(ax,ay,bx,by){
  const g=grid;
  if(g[ay][ax]<0||g[by][bx]<0||g[ay][ax]!==g[by][bx])return null;
  const ok=(x,y)=>cellFree(x,y,ax,ay,bx,by);
- if(ax===bx){let clear=true;for(let y=Math.min(ay,by)+1;y<Math.max(ay,by);y++)if(!ok(ax,y)){clear=false;break;}
-  if(clear)return[[ax,ay],[bx,by]];}
- if(ay===by){let clear=true;for(let x=Math.min(ax,bx)+1;x<Math.max(ax,bx);x++)if(!ok(x,ay)){clear=false;break;}
-  if(clear)return[[ax,ay],[bx,by]];}
- if(ok(ax,by)&&segV(ax,ay,by,ok)&&segH(by,ax,bx,ok))return[[ax,ay],[ax,by],[bx,by]];
- if(ok(bx,ay)&&segH(ay,ax,bx,ok)&&segV(bx,ay,by,ok))return[[ax,ay],[bx,ay],[bx,by]];
+ let best=null,bestLength=Infinity,bestTurns=Infinity,bestOutside=Infinity;
+ function consider(path){
+  // 去掉重合拐点，再按长度、转弯次数、外圈节点数排序。
+  path=path.filter((p,i)=>!i||p[0]!==path[i-1][0]||p[1]!==path[i-1][1]);
+  let length=0;
+  for(let i=1;i<path.length;i++)length+=Math.abs(path[i][0]-path[i-1][0])+Math.abs(path[i][1]-path[i-1][1]);
+  const turns=Math.max(0,path.length-2);
+  const outside=path.filter(([x,y])=>x===0||y===0||x===COLS+1||y===ROWS+1).length;
+  if(length<bestLength||length===bestLength&&(turns<bestTurns||turns===bestTurns&&outside<bestOutside)){
+   best=path;bestLength=length;bestTurns=turns;bestOutside=outside;
+  }
+ }
+ if(ax===bx&&segV(ax,ay,by,ok))consider([[ax,ay],[bx,by]]);
+ if(ay===by&&segH(ay,ax,bx,ok))consider([[ax,ay],[bx,by]]);
+ if(ok(ax,by)&&segV(ax,ay,by,ok)&&segH(by,ax,bx,ok))consider([[ax,ay],[ax,by],[bx,by]]);
+ if(ok(bx,ay)&&segH(ay,ax,bx,ok)&&segV(bx,ay,by,ok))consider([[ax,ay],[bx,ay],[bx,by]]);
  for(let y=0;y<=ROWS+1;y++){
   if(!ok(ax,y)||!ok(bx,y))continue;
   if(segV(ax,ay,y,ok)&&segH(y,ax,bx,ok)&&segV(bx,by,y,ok))
-   return[[ax,ay],[ax,y],[bx,y],[bx,by]];
+   consider([[ax,ay],[ax,y],[bx,y],[bx,by]]);
  }
  for(let x=0;x<=COLS+1;x++){
   if(!ok(x,ay)||!ok(x,by))continue;
   if(segH(ay,ax,x,ok)&&segV(x,ay,by,ok)&&segH(by,x,bx,ok))
-   return[[ax,ay],[x,ay],[x,by],[bx,by]];
+   consider([[ax,ay],[x,ay],[x,by],[bx,by]]);
  }
- return null;
+ return best;
 }
 function segV(x,y1,y2,ok){if(y1===y2)return true;for(let y=Math.min(y1,y2)+1;y<Math.max(y1,y2);y++)if(!ok(x,y))return false;return true;}
 function segH(y,x1,x2,ok){if(x1===x2)return true;for(let x=Math.min(x1,x2)+1;x<Math.max(x1,x2);x++)if(!ok(x,y))return false;return true;}
@@ -453,12 +653,12 @@ function findHint(){
 // ===== 点击 =====
 // 右键：取消当前点选
 function onRightClick(){
- if(paused||over||clearing)return;
+ if(gameState()!=="playing")return;
  if(sel){const t=tiles.get(sel[0]+","+sel[1]);if(t)t.classList.remove("sel");sel=null;play("cancel");}
  clearHintFlash();
 }
 function onTile(x,y){
- if(paused||over||clearing)return;
+ if(gameState()!=="playing")return;
  const k=grid[y][x];if(k<0)return;
  clearHintFlash();
  if(!sel){sel=[x,y];tiles.get(x+","+y).classList.add("sel");play("select");return;}
@@ -476,7 +676,7 @@ function onTile(x,y){
   grid[ay][ax]=-1;grid[y][x]=-1;
   tiles.delete(ax+","+ay);tiles.delete(x+","+y);
   sel=null;
-  const delay=soundOn&&Number.isFinite(AUDIO.match.duration)?AUDIO.match.duration*1000:300;
+  const delay=300; // 连线停留时间独立于声音设置和音频加载状态。
   const job={t1,t2,timer:null};pendingMatches.add(job);
   job.timer=setTimeout(()=>{
    pendingMatches.delete(job);resolving=pendingMatches.size>0;
@@ -488,7 +688,7 @@ function onTile(x,y){
    score+=10;
    // 原版时间槽：增加5，超过300时写入302
    remain+=5;if(remain>300)remain=302;
-   updUI();if(!resolving)checkState();},delay);
+   updUI();if(!resolving)checkState();saveProgress();},delay);
  }else{
   // 点了第二张但无法与第一张消除
   const same=grid[y][x]===grid[sel[1]][sel[0]];
@@ -631,6 +831,7 @@ function showClearDialog(gain,timeBonus,resourceBonus){
  $("clearDlg").classList.remove("hidden");
 }
 $("clearOk").onclick=()=>{
+ if(gameState()!=="clear")return;
  $("clearDlg").classList.add("hidden");
  nextLevel();
  if(!over)startTimer(); // 恢复计时（通关时nextLevel会触发finishGame，不重启）
@@ -640,6 +841,7 @@ function autoShuffle(){
  else gameOver("无可消除的组合，且洗牌次数不足");
 }
 function reshuffle(free){
+ sel=null;clearHintFlash();fctx.clearRect(0,0,fx.width,fx.height);
  const kinds=[];
  for(let y=1;y<=ROWS;y++)for(let x=1;x<=COLS;x++)if(grid[y][x]>=0)kinds.push(grid[y][x]);
  let tries=0;
@@ -654,7 +856,7 @@ function reshuffle(free){
 // ===== 提示 =====
 function clearHintFlash(){document.querySelectorAll(".tile.hint").forEach(e=>e.classList.remove("hint"));}
 function doHint(){
- if(paused||over||clearing||resolving)return;
+ if(gameState()!=="playing"||resolving)return;
  if(hints<=0){floatText("提示次数不足！","punish");return;}
  const h=findHint();
  if(!h){toast("没有可消除的组合");return;}
@@ -667,10 +869,10 @@ function doHint(){
 }
 // ===== 计时 =====
 function timerTick(){
- if(paused||over||clearing||resolving)return;
+ if(!["playing","cheat","jump"].includes(gameState())||resolving)return;
  if(remain===0){score+=100;remain=-1;gameOver("时间到！");return;}
  if(remain>0)remain--;
- updTime();
+ updTime();saveProgress();
 }
 function startTimer(){
  clearInterval(timer);
@@ -695,19 +897,64 @@ function logEvent(msg){
 }
 // ===== 排行榜 =====
 function loadRanks(){try{return JSON.parse(localStorage.getItem("llk_ranks")||"[]");}catch(e){return [];}}
+const PENDING_RANK_KEY="llk_pending_rank";
+let pendingRank=null,lastRank=null;
+function clearPendingRank(){localStorage.removeItem(PENDING_RANK_KEY);pendingRank=null;}
+function restorePendingRank(){
+ let r;try{r=JSON.parse(localStorage.getItem(PENDING_RANK_KEY));}catch(e){return;}
+ if(!r||!DIFF[r.diff]||!Number.isFinite(r.score)||!["pet","jp","sign"].includes(r.tileSet))return;
+ pendingRank=r;diff=r.diff;score=r.score;practice=r.practice;tileSet=r.tileSet;startLevel=r.startLevel;level=r.level;
+ over=true;$("overlay").classList.add("hidden");promptRank(score,r.cleared,r.reason);
+}
+
+function rankMode(entry){return entry.mode||"legacy";}
+function bestRecords(){try{return JSON.parse(localStorage.getItem("llk_personal_bests")||"[]");}catch(e){return [];}}
+function updateBestDisplay(){
+ if(practice){$("personalBest").textContent="练习局不计入个人纪录";return;}
+ const name=$("rankName").value.trim()||"匿名";
+ const best=bestRecords().find(it=>it.name===name&&it.diff===DIFF[diff].name);
+ const sc=Math.round(score);
+ $("personalBest").textContent=!best?"首次正式成绩，保存后建立个人纪录":sc>best.score?`刷新个人纪录！${best.score} → ${sc} 分（保存后生效）`:sc===best.score?`追平个人纪录：${sc} 分`:`个人最佳 ${best.score} 分 · 还差 ${best.score-sc} 分`;
+}
+$("rankName").oninput=()=>{
+ updateBestDisplay();
+ if(pendingRank){pendingRank.name=$("rankName").value;localStorage.setItem(PENDING_RANK_KEY,JSON.stringify(pendingRank));}
+};
 function saveRank(name,sc,df){
- const r=loadRanks();r.push({name,score:Math.round(sc),diff:DIFF[df].name,time:Date.now()});
- r.sort((a,b)=>b.score-a.score);const top=r.slice(0,20);
- localStorage.setItem("llk_ranks",JSON.stringify(top));return top;
+ const entry={id:pendingRank?.id||crypto.randomUUID(),name,score:Math.round(sc),diff:DIFF[df].name,mode:practice?"practice":"official",time:Date.now()};
+ const r=loadRanks().filter(it=>it.id!==entry.id);r.push(entry);
+ const group=r.filter(it=>it.diff===entry.diff&&rankMode(it)===entry.mode).sort((a,b)=>b.score-a.score);
+ const place=group.indexOf(entry)+1;
+ const top=["official","practice","legacy"].flatMap(mode=>DIFF.flatMap(d=>r.filter(it=>it.diff===d.name&&rankMode(it)===mode).sort((a,b)=>b.score-a.score).slice(0,20)));
+ localStorage.setItem("llk_ranks",JSON.stringify(top));
+ localStorage.setItem("llk_last_rank",JSON.stringify(entry));
+ if(!practice){
+  const bests=bestRecords(),best=bests.find(it=>it.name===name&&it.diff===entry.diff);
+  if(!best)bests.push({name,diff:entry.diff,score:entry.score});
+  else best.score=Math.max(best.score,entry.score);
+  localStorage.setItem("llk_personal_bests",JSON.stringify(bests));
+ }
+ lastRank=entry;
+ return place;
 }
 // 游戏结束（通关或失败）后提示输入名字并写入排行榜
 function promptRank(sc,cleared,reason){
+ if(!pendingRank)pendingRank={id:crypto.randomUUID(),score:sc,diff,practice,tileSet,startLevel,level,cleared:!!cleared,reason:reason||"",name:localStorage.getItem("llk_name")||""};
+ localStorage.setItem(PENDING_RANK_KEY,JSON.stringify(pendingRank));
+ closeAsk();
  const title=cleared?`🎉 通关全部 ${MAX_LEVEL} 关！`:'游戏结束';
  $("rankTitle").textContent=title;
  // 明确显示结束原因（时间到/死局/通关），避免“莫名退出”
  $("rankReason").textContent=cleared?"全部关卡完成！":(reason||"");
- $("rankScoreText").textContent=`最终得分：${Math.round(sc)}　难度：${DIFF[diff].name}`;
- $("rankName").value=localStorage.getItem("llk_name")||"";
+ $("rankScoreText").textContent=`最终得分：${Math.round(sc)}　难度：${DIFF[diff].name}　${practice?"练习局":"正式局"}`;
+ $("rankName").value=pendingRank.name;
+ updateBestDisplay();
+ $("rankName").disabled=false;
+ $("rankSave").disabled=false;$("rankSave").textContent="保存成绩";
+ $("rankSkip").textContent="跳过";
+ clearProgress();
+ lastRank=null;$("rankResult").textContent="";
+ renderRankTable("rankTable",diff);
  $("rankDlg").classList.remove("hidden");
 }
 function finishGame(){ // 11 关全部通关
@@ -717,20 +964,35 @@ function finishGame(){ // 11 关全部通关
  logEvent(`通关全部${MAX_LEVEL}关，得分${score}`);
  promptRank(score,true);
 }
-function renderRankTable(targetId){
- const r=loadRanks();
- const tb=$(targetId);
- if(!r.length){tb.innerHTML='<div style="color:#ccc;text-align:center;padding:20px;font-size:14px">暂无成绩记录<br><span style="color:#888;font-size:12px">通关一个难度后会记录在这里</span></div>';return;}
- let h='<table style="width:100%;border-collapse:collapse;font-size:13px">';
- h+='<tr style="color:#ffd54f"><th style="padding:3px">#</th><th>名字</th><th>分数</th><th>难度</th></tr>';
- r.forEach((it,i)=>{h+=`<tr style="border-top:1px solid #444;text-align:center"><td style="padding:3px">${i+1}</td><td>${it.name}</td><td><b style="color:#ffd54f">${Math.round(it.score)}</b></td><td>${it.diff||''}</td></tr>`;});
- h+='</table>';tb.innerHTML=h;
+function renderRankTable(targetId,df=diff,mode=practice?"practice":"official"){
+ const r=loadRanks().filter(it=>it.diff===DIFF[df].name&&rankMode(it)===mode).sort((a,b)=>b.score-a.score).slice(0,20);
+ const tb=$(targetId);tb.replaceChildren();
+ if(!r.length){tb.textContent="此难度暂无成绩记录";return;}
+ const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;font-size:13px";
+ const head=table.insertRow();
+ for(const text of["名次","名字","分数"]){const th=document.createElement("th");th.textContent=text;head.appendChild(th);}
+ r.forEach((it,i)=>{
+  const row=table.insertRow();row.style.borderTop="1px solid #444";
+  if(lastRank&&it.id===lastRank.id){row.style.background="#465332";row.dataset.current="true";}
+  for(const text of[i+1,it.name,it.score]){const cell=row.insertCell();cell.textContent=text;cell.style.padding="5px";}
+ });
+ tb.appendChild(table);
+ tb.querySelector('[data-current="true"]')?.scrollIntoView({block:"nearest"});
 }
 // ===== UI =====
+function markPractice(){
+ if(!practice)toast("本局已转为练习局，成绩计入练习榜",3500);
+ practice=true;$("runMode").textContent="练习局";
+ // 动画尚未结算时也标记旧快照，避免恢复后丢失练习标记。
+ const p=readProgress();
+ if(p){p.practice=true;try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(p));}catch(e){}}
+ saveProgress();
+}
 function updUI(){
+ $("runMode").textContent=practice?"练习局":"正式局";
  $("lv").textContent=level;$("lay").textContent=LAYOUTS[(level-1)%LAYOUTS.length].name;
  $("lives").textContent=lives;$("hints").textContent=hints;$("score").textContent=Math.round(score);
- $("diffName").textContent=DIFF[diff].name;updTime();
+ $("diffName").textContent=DIFF[diff].name;updTime();saveProgress();
 }
 function updTime(){
  const total=levelTime(),p=Math.min(100,Math.max(0,remain/total*100));
@@ -743,7 +1005,7 @@ function updTime(){
 let askKind=null;
 const ASK_TEXT={
  pause:{icon:"⏸️",title:"已暂停",      msg:"时间已暂停，按 P 或回车继续游戏"},
- menu: {icon:"↩️",title:"返回菜单？",  msg:"当前进度不会保存，确定要退出本局吗？"}
+ menu: {icon:"↩️",title:"返回菜单？",  msg:"当前进度将保留，可从菜单继续游戏。"}
 };
 function askOpen(){return askKind!==null;}
 function setBoardBlur(on){$("boardWrap").classList.toggle("blurred",on);}
@@ -780,11 +1042,12 @@ function setPaused(on){
  syncBlur();
 }
 function togglePause(){ // P / 回车 / 暂停按钮
- if(over)return;
+ if(!["playing","paused","ask"].includes(gameState()))return;
  if(paused)resumeGame();                                  // 已暂停 → 继续游戏
  else{setPaused(true);openAsk("pause");}                  // 暂停并弹出同一个弹窗
 }
 function returnToMenu(){ // 确认返回菜单
+ saveProgress();
  closeAsk();closeCheat();closeJump();stopBGM();
  over=true;clearInterval(timer);
  paused=false;updPauseBtn();
@@ -792,10 +1055,12 @@ function returnToMenu(){ // 确认返回菜单
  resetToIdle(); // 清空盘面与对局数值，别让上一局的界面留在菜单后面
  syncBlur();
  $("overlay").classList.remove("hidden");$("ovMsg").textContent="";
+ $("clearDlg").classList.add("hidden");
+ refreshResumeButton();
 }
 // 把界面还原成“未开局”的样子（对齐首次加载的样子）：清空盘面 + 复位对局数值
 function resetToIdle(){
- for(const job of pendingMatches)clearTimeout(job.timer); // 可能还在等待消除动画的牌
+ for(const job of pendingMatches){clearTimeout(job.timer);job.t1.remove();job.t2.remove();} // 可能还在等待消除动画的牌
  pendingMatches.clear();
  tiles.forEach(el=>el.remove());tiles.clear();
  grid=[];sel=null;hintPair=null;resolving=false;clearing=false;
@@ -810,13 +1075,52 @@ $("menuBtn").onclick=()=>openAsk("menu");                  // 工具栏“返回
 $("askResumeBtn").onclick=()=>cancelAsk();                 // 绿：继续游戏
 $("askMenuBtn").onclick=()=>{askKind==="pause"?openAsk("menu"):returnToMenu();}; // 红：返回菜单（暂停中先走确认）
 $("askDlg").onclick=e=>{if(e.target===$("askDlg"))cancelAsk();}; // 点遮罩 = 继续游戏
+// ===== 失焦自动暂停 =====
+// 窗口失去焦点（切到别的程序/标签页/最小化）时自动暂停，回来必须手动继续——
+// 走的就是正常的暂停流程（弹窗 + 模糊 + 停 BGM + 冻结计时），所以切走也白嫖不到思考时间。
+function autoPauseBlur(){
+ if(over||paused||clearing||askOpen()||cheatOn||jumpOn)return;      // 已在暂停/结算/有面板时不重复处理
+ if(!$("overlay").classList.contains("hidden"))return;              // 菜单界面（未开局）不触发
+ togglePause();
+ $("askMsg").textContent="窗口失去焦点，已自动暂停（按 P 或回车继续游戏）";
+}
+// 开局增加一条同页记录：普通后退先交给游戏确认框，菜单后退则跳过这条记录。
+let gameHistoryGuard=history.state?.llkNavigation==="game";
+function armGameHistory(){
+ if(history.state?.llkNavigation!=="game"){
+  history.replaceState({...history.state,llkNavigation:"menu"},"");
+  history.pushState({...history.state,llkNavigation:"game"},"");
+ }
+ gameHistoryGuard=true;
+}
+window.addEventListener("popstate",e=>{
+ const wasGuard=gameHistoryGuard;
+ gameHistoryGuard=e.state?.llkNavigation==="game";
+ if(!wasGuard||e.state?.llkNavigation!=="menu")return;
+ if(over||!$("overlay").classList.contains("hidden")){
+  history.back();
+  return;
+ }
+ armGameHistory();
+ closeCheat();closeJump();
+ openAsk("menu");
+});
+// 游戏进行中离开页面（后退、刷新、关闭）时，由浏览器确认，暂停时也保留保护。
+window.addEventListener("beforeunload",e=>{
+ saveProgress();
+ if(!pendingRank&&(over||!$("overlay").classList.contains("hidden")))return;
+ e.preventDefault();
+ e.returnValue="";
+});
+window.addEventListener("blur",autoPauseBlur);
+document.addEventListener("visibilitychange",()=>{if(document.hidden){saveProgress();autoPauseBlur();}});
 // ===== 隐藏秘籍（Ctrl+Alt 呼出）=====
 // 每次点击加多少，改这里即可
 const CHEAT_ADD={time:60,hints:1,lives:1};
 let cheatOn=false;
 function cheatLog(t){$("cheatMsg").textContent=t;}
 function openCheat(){
- if(cheatOn)return;
+ if(gameState()!=="playing")return;
  cheatOn=true;
  $("cheatDlg").classList.remove("hidden");
  cheatLog("可无限点击　·　Ctrl+Alt 或 Esc 关闭");
@@ -837,17 +1141,20 @@ $("cheatTime").onclick=()=>{
  if(!cheatReady())return;
  const cap=levelTime(),before=remain; // 上限 = 本关最长时间，加满为止
  if(before>=cap){play("cancel");cheatLog(`时间已满（${cap}）`);return;}
+ markPractice();
  remain=Math.min(before+CHEAT_ADD.time,cap);
  updUI();play("reward");
  cheatLog(`时间 +${remain-before}　剩余 ${remain}`);
 };
 $("cheatHint").onclick=()=>{
  if(!cheatReady())return;
+ markPractice();
  hints+=CHEAT_ADD.hints;updUI();play("reward");
  cheatLog(`提示 +${CHEAT_ADD.hints}　当前 ${hints} 次`);
 };
 $("cheatShuffle").onclick=()=>{
  if(!cheatReady())return;
+ markPractice();
  lives+=CHEAT_ADD.lives;updUI();play("reward");
  cheatLog(`洗牌 +${CHEAT_ADD.lives}　当前 ${lives} 次`);
 };
@@ -855,7 +1162,7 @@ $("cheatDlg").onclick=e=>{if(e.target===$("cheatDlg"))closeCheat();}; // 点遮�
 // ===== 跳关（保持分数/洗牌/提示次数不变）=====
 let jumpOn=false;
 function openJump(){
- if(over||jumpOn)return;
+ if(gameState()!=="playing")return;
  jumpOn=true;
  const sel=$("jumpSel");sel.value=String(level); // 默认停在当前关卡
  $("jumpMsg").textContent=`现在：第 ${level} 关　得分 ${Math.round(score)}　洗牌 ${lives}　提示 ${hints}`;
@@ -867,14 +1174,17 @@ function doJump(target){
  target=Math.min(MAX_LEVEL,Math.max(1,target||1));
  closeJump();
  if(target===level){toast("已经在第 "+level+" 关");return;}
+ const wasPractice=practice;
+ markPractice();
  logEvent(`跳关：第${level}关 → 第${target}关（保持得分${score}、洗牌${lives}、提示${hints}）`);
  level=target;
  buildBoard(); // 只重铺牌：remain 回到本关满值，不动 score/lives/hints
  updUI();
- toast(`跳到第 ${target} 关（${LAYOUTS[(target-1)%LAYOUTS.length].name}）`);
+ if(wasPractice)toast(`跳到第 ${target} 关（${LAYOUTS[(target-1)%LAYOUTS.length].name}）`);
  play("shuffle");
 }
-$("jumpBtn").onclick=openJump;
+$("jumpBtn").onclick=()=>{$("practiceTools").open=false;openJump();};
+$("practiceCheatBtn").onclick=()=>{$("practiceTools").open=false;openCheat();};
 $("jumpOk").onclick=()=>doJump(+$("jumpSel").value);
 $("jumpCancel").onclick=closeJump;
 $("jumpSel").onchange=()=>{ // 顺手预览一下目标关卡牌型
@@ -884,39 +1194,27 @@ $("jumpSel").onchange=()=>{ // 顺手预览一下目标关卡牌型
 $("jumpDlg").onclick=e=>{if(e.target===$("jumpDlg"))closeJump();}; // 点遮罩关闭
 // ===== 事件 =====
 $("hintBtn").onclick=doHint;
-$("shuffleBtn").onclick=()=>{if(paused||over||clearing||resolving)return;if(lives<1){floatText("洗牌次数不足！","punish");return;}lives--;reshuffle();updUI();};
+$("shuffleBtn").onclick=()=>{if(gameState()!=="playing"||resolving)return;if(lives<1){floatText("洗牌次数不足！","punish");return;}lives--;reshuffle();updUI();};
 $("pauseBtn").onclick=togglePause;
 document.addEventListener("keydown",e=>{
- const k=e.key;
- // 隐藏秘籍开关：Ctrl+Alt（只认 Alt/Control 自身的按键，不抢 Ctrl+Alt+字母 这类组合；长按不重复切换）
+ const k=e.key,state=gameState();
+ if(e.target.closest?.("input,textarea,select,[contenteditable=true]"))return;
+ if(state==="ask"){
+  if(["p","P","Enter","Escape"].includes(k)){e.preventDefault();if(!e.repeat)cancelAsk();}
+  return;
+ }
+ if(state==="cheat"||state==="jump"){
+  if(k==="Escape"){e.preventDefault();state==="cheat"?closeCheat():closeJump();}
+  return;
+ }
+ if(!["playing","paused"].includes(state))return;
  if(e.ctrlKey&&e.altKey&&(k==="Alt"||k==="Control")){
-  e.preventDefault();
-  if(!e.repeat)toggleCheat();
-  return;
+  e.preventDefault();if(!e.repeat)toggleCheat();return;
  }
- if(cheatOn){ // 秘籍面板打开时，只响应 Esc 关闭，按键不穿透到游戏
-  if(k==="Escape")closeCheat();
-  return;
- }
- // 弹窗打开时键盘只服务弹窗：P/回车/Esc 都等于“继续游戏”。
- // 返回菜单必须点红色按钮，避免键盘误按把本局进度丢掉。
- if(askOpen()){
-  if(k==="p"||k==="P"||k==="Enter"||k==="Escape"){
-   if(k!=="Escape")e.preventDefault(); // 拦掉回车对按钮的默认激活
-   cancelAsk();
-  }
-  return;
- }
- if(jumpOn){ // 跳关面板打开时只响应 Esc
-  if(k==="Escape")closeJump();
-  return;
- }
- // 带修饰键的按键不当作游戏快捷键，避免 Ctrl+P（打印）、Ctrl+L（地址栏）等顺带暂停/跳关
  if(e.ctrlKey||e.metaKey||e.altKey)return;
- if(k==="p"||k==="P"||k==="Enter")togglePause();
- if(k==="l"||k==="L"){ // 测试用：跳到下一关
-  if(over)return;
-  clearInterval(timer);nextLevel();startTimer();
+ if(k==="p"||k==="P"||k==="Enter"){
+  if(k==="Enter"&&e.target.closest?.("button,summary"))return;
+  e.preventDefault();if(!e.repeat)togglePause();
  }
 });
 // 全局接管右键：任何位置都不再弹出浏览器菜单（避免误点“返回”退出游戏），且统一响应为“取消当前点选”
@@ -932,24 +1230,42 @@ $("soundBtn").onclick=()=>{soundOn=!soundOn;if(!soundOn)Object.values(AUDIO).for
 $("bgmBtn").onclick=()=>{setBGM(!bgmOn);$("bgmBtn").textContent=bgmOn?"🎵 音乐开":"🎵 音乐关";$("bgmBtn").style.opacity=bgmOn?"1":".55"};
 $("nextBgmBtn").onclick=()=>{nextBGM();if(!bgmOn)$("bgmBtn").click();};
 // 返回菜单按钮改为弹确认框（见上方“返回菜单（二次确认）”），此处不再直接退出
-$("startBtn").onclick=()=>{
+function startFromMenu(){
  diff=+$("diffSel").value;tileSet=$("setSel").value;
  startLevel=+$("levelSel").value||1;
  localStorage.setItem("llk_tileset",tileSet);
+ armGameHistory();
  $("overlay").classList.add("hidden");newGame();
+}
+$("startBtn").onclick=()=>{
+ if(readProgress())confirmGameAction("开始新游戏？","上次游戏进度将被覆盖。",startFromMenu);
+ else startFromMenu();
 };
 // ===== 排行榜事件 =====
 $("rankSave").onclick=()=>{
  const name=$("rankName").value.trim()||"匿名";
  localStorage.setItem("llk_name",name);
- saveRank(name,score,diff);
+ const bestMessage=$("personalBest").textContent;
+ const place=saveRank(name,score,diff);
+ $("personalBest").textContent=bestMessage.replace("（保存后生效）","").replace("首次正式成绩，保存后建立个人纪录",`个人纪录已建立：${Math.round(score)} 分`);
+ $("rankName").disabled=true;
  renderRankTable("rankTable");
+ $("rankResult").textContent=place<=20?`${DIFF[diff].name}${practice?"练习榜":"正式榜"} · 本次第 ${place} 名`:`本次成绩已记录，未进入${DIFF[diff].name}${practice?"练习榜":"正式榜"}前 20 名`;
  $("rankSave").disabled=true;
- setTimeout(()=>{ $("rankDlg").classList.add("hidden"); $("rankSave").disabled=false; resetToIdle(); $("overlay").classList.remove("hidden"); },1200);
+ $("rankSave").textContent="已保存";
+ clearPendingRank();
+ $("rankSkip").textContent="返回菜单";
 };
-$("rankSkip").onclick=()=>{ $("rankDlg").classList.add("hidden"); resetToIdle(); $("overlay").classList.remove("hidden"); };
+$("rankSkip").onclick=()=>{ clearPendingRank(); $("rankDlg").classList.add("hidden"); resetToIdle(); $("overlay").classList.remove("hidden"); };
+$("rankAgain").onclick=()=>{
+ const replay=()=>{clearPendingRank();$("rankDlg").classList.add("hidden");armGameHistory();newGame();};
+ if(pendingRank)confirmGameAction("跳过保存并再玩一局？","本次成绩尚未保存，继续将放弃这次成绩。",replay);
+ else replay();
+};
+$("rankDiff").onchange=$("rankMode").onchange=()=>renderRankTable("rankViewTable",+$("rankDiff").value,$("rankMode").value);
 $("rankBtn").onclick=()=>{
- renderRankTable("rankViewTable");
+ $("rankDiff").value=$("diffSel").value;
+ renderRankTable("rankViewTable",+$("rankDiff").value,$("rankMode").value);
  try{ const logs=JSON.parse(localStorage.getItem("llk_logs")||"[]");
   $("logView").textContent=logs.length?logs.join("\n"):"（暂无事件记录）";
  }catch(e){ $("logView").textContent="（暂无事件记录）"; }
@@ -968,6 +1284,9 @@ $("rankClose").onclick=()=>{ $("rankView").classList.add("hidden"); };
   }
  }
 })();
+DIFF.forEach((d,i)=>$("rankDiff").add(new Option(d.name,i)));
+refreshResumeButton();
+restorePendingRank();
 boardEl.style.position="relative";
 </script>
 </body>

@@ -4,3 +4,5 @@ __pycache__/
 # 智能体/本地运行产生的目录与日志，不纳入版本管理
 .workbuddy/
 debug.log
+
+/docs/
